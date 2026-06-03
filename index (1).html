@@ -1,0 +1,747 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'IBM Plex Sans', sans-serif; background: #0d1117; color: #e6edf3; }
+.wrap { padding: 16px; }
+h2.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+/* Header */
+.header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.header h3 { font-size: 15px; font-weight: 600; color: #e6edf3; flex: 1; letter-spacing: 0.02em; font-family: 'IBM Plex Mono', monospace; }
+.search-box { border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; font-size: 12px; width: 200px; background: #161b22; color: #e6edf3; font-family: 'IBM Plex Mono', monospace; outline: none; }
+.search-box:focus { border-color: #388bfd; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; margin-bottom: 10px; border-bottom: 1px solid #21262d; padding-bottom: 0; }
+.tab { font-size: 12px; padding: 6px 14px; cursor: pointer; border: none; background: transparent; color: #8b949e; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'IBM Plex Sans', sans-serif; transition: all 0.15s; }
+.tab.active { color: #58a6ff; border-bottom-color: #1f6feb; }
+.tab:hover:not(.active) { color: #c9d1d9; }
+
+/* Filter pills */
+.filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; cursor: pointer; border: 1px solid #30363d; background: #161b22; color: #8b949e; transition: all 0.15s; font-family: 'IBM Plex Mono', monospace; }
+.pill.active { background: #1f3a5f; color: #79c0ff; border-color: #1f6feb; }
+.pill:hover:not(.active) { border-color: #58a6ff; color: #c9d1d9; }
+
+/* Legend */
+.legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 11px; color: #8b949e; }
+.leg-item { display: flex; align-items: center; gap: 5px; }
+.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+/* Graph */
+.graph-wrap { overflow: auto; border: 1px solid #21262d; border-radius: 8px; background: #0d1117; position: relative; }
+svg { display: block; }
+.node-group { cursor: pointer; }
+.node-group rect { transition: filter 0.15s; }
+.node-group:hover rect { filter: brightness(1.15); }
+.node-group.highlighted rect { stroke-width: 2.5 !important; filter: brightness(1.2); }
+.node-group.dimmed { opacity: 0.12; }
+.edge { transition: opacity 0.15s; }
+.edge.dimmed { opacity: 0.03 !important; }
+.edge.highlighted { opacity: 1 !important; stroke-width: 1.8 !important; }
+
+/* Tooltip */
+.tooltip { position: fixed; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #e6edf3; box-shadow: 0 8px 24px rgba(0,0,0,0.5); max-width: 300px; pointer-events: none; z-index: 999; display: none; font-family: 'IBM Plex Sans', sans-serif; }
+.tooltip .tt-title { font-weight: 600; font-size: 13px; margin-bottom: 6px; font-family: 'IBM Plex Mono', monospace; color: #79c0ff; }
+.tooltip .tt-section { font-size: 10px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 8px; margin-bottom: 3px; }
+.tooltip .tt-row { color: #c9d1d9; margin-top: 2px; line-height: 1.5; }
+.tooltip .tt-formula { color: #79c0ff; font-family: 'IBM Plex Mono', monospace; font-size: 10px; background: #0d1117; padding: 4px 6px; border-radius: 4px; margin-top: 4px; word-break: break-all; }
+.tooltip .tt-dep { color: #56d364; }
+.tooltip .tt-used { color: #f78166; }
+.tooltip .tt-map { color: #ffa657; font-weight: 500; }
+.tooltip .tt-hint { color: #6e7681; font-size: 10px; margin-top: 6px; }
+
+/* Maps panel */
+.maps-panel { display: none; }
+.maps-panel.active { display: block; }
+.graph-panel.active { display: block; }
+.graph-panel { display: none; }
+.maps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.map-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 14px; transition: border-color 0.15s; }
+.map-card:hover { border-color: #388bfd; }
+.map-card .mc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.map-card .mc-num { font-size: 10px; font-family: 'IBM Plex Mono', monospace; background: #1f3a5f; color: #58a6ff; padding: 2px 6px; border-radius: 3px; }
+.map-card .mc-name { font-size: 13px; font-weight: 600; color: #e6edf3; font-family: 'IBM Plex Mono', monospace; }
+.map-card .mc-derived { font-size: 10px; background: #2d1f3d; color: #d2a8ff; padding: 2px 6px; border-radius: 3px; margin-left: auto; }
+.map-row { display: flex; margin-bottom: 6px; font-size: 11px; }
+.map-row .mr-label { color: #6e7681; width: 68px; flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding-top: 1px; }
+.map-row .mr-val { color: #c9d1d9; }
+.map-row .mr-key { color: #ffa657; font-family: 'IBM Plex Mono', monospace; }
+.map-row .mr-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.map-row .mr-tag { background: #1a2d1a; color: #56d364; border: 1px solid #2a4a2a; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-family: 'IBM Plex Mono', monospace; }
+.map-row .mr-tag.dep { background: #1f2d3d; color: #79c0ff; border-color: #1f4570; }
+</style>
+
+<div class="wrap">
+<h2 class="sr-only">Full data dependency map — all 27 maps, all fields</h2>
+<div class="header">
+  <h3>⬡ DATA DEPENDENCY MAP &nbsp;·&nbsp; 27 MAPS</h3>
+  <input class="search-box" type="text" id="search" placeholder="Search field or map..." oninput="onSearch(this.value)">
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('graph', this)">Dependency Graph</button>
+  <button class="tab" onclick="switchTab('maps', this)">All 27 Maps</button>
+</div>
+
+<div id="graph-panel" class="graph-panel active">
+  <div class="filter-pills" id="pills"></div>
+  <div class="legend">
+    <span class="leg-item"><span class="leg-dot" style="background:#2ea043"></span>Source / raw field</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#388bfd"></span>Derived field</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#e3b341"></span>Map lookup result</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#f78166"></span>Output / final field</span>
+    <span class="leg-item"><span class="leg-dot" style="background:#a371f7"></span>Connector / join field</span>
+  </div>
+  <div class="graph-wrap" id="graph-wrap">
+    <svg id="main-svg" width="2400" height="1800"></svg>
+  </div>
+</div>
+
+<div id="maps-panel" class="maps-panel">
+  <div class="maps-grid" id="maps-grid"></div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+</div>
+
+<script>
+// ── CATEGORIES ──────────────────────────────────────────────────────────────
+const CATEGORIES = {
+  source:    { label: 'Source / raw',   fill: '#0d4a1f', stroke: '#2ea043', text: '#56d364' },
+  derived:   { label: 'Derived',        fill: '#0c2a4e', stroke: '#388bfd', text: '#79c0ff' },
+  map:       { label: 'Map result',     fill: '#3d2a00', stroke: '#d29922', text: '#e3b341' },
+  output:    { label: 'Output / final', fill: '#3d1200', stroke: '#da3633', text: '#f78166' },
+  connector: { label: 'Connector',      fill: '#2d1f4a', stroke: '#8957e5', text: '#d2a8ff' },
+};
+
+// ── ALL 27 MAPS ──────────────────────────────────────────────────────────────
+const ALL_MAPS = [
+  { num:1,  name:"MAP1",               pk:"L",            usedBy:"DATA_FILES[L]",            returns:["PROD 2"],                                                                         type:"lookup" },
+  { num:2,  name:"TD-CD_Ratio",        pk:"A/L Product",  usedBy:"DATA_FILES[A/L Product]",  returns:["Type 1"],                                                                         type:"lookup" },
+  { num:3,  name:"Table1",             pk:"Acc_Num",       usedBy:"DATA_FILES[Acc_Num]",      returns:["(No return cols in Maps depen.)"],                                                 type:"lookup" },
+  { num:4,  name:"BRANCHES",           pk:"BRN_COD",       usedBy:"DATA_FILES[BRN_No]",       returns:["Area","Region"],                                                                   type:"lookup" },
+  { num:5,  name:"DAYS",               pk:"BUS_DATE",      usedBy:"DATA_FILES[BUS_DATE]",     returns:["STATUS","Order"],                                                                  type:"lookup" },
+  { num:6,  name:"MF",                 pk:"Conc",          usedBy:"DATA_FILES[Connector1]",   returns:["STATUS"],                                                                          type:"lookup" },
+  { num:7,  name:"EOY_CLOS_RATES",     pk:"Column1",       usedBy:"DATA_FILES[Column1]",      returns:["CCY"],                                                                             type:"lookup" },
+  { num:8,  name:"FI_RM_2",            pk:"CUST_ID",       usedBy:"DATA_FILES[CUST_ID]",      returns:["Order"],                                                                           type:"lookup" },
+  { num:9,  name:"CUSTOMERS",          pk:"Customer ID",   usedBy:"DATA_FILES[CUST_ID]",      returns:["Customer Name","LOB_2"],                                                           type:"lookup" },
+  { num:10, name:"TR_CLIENT",          pk:"CUST_ID",       usedBy:"DATA_FILES[CUST_ID]",      returns:["status"],                                                                          type:"lookup" },
+  { num:11, name:"Exchange_Companies", pk:"Customer ID",   usedBy:"DATA_FILES[Customer ID]",  returns:["In-Out"],                                                                          type:"lookup" },
+  { num:12, name:"Tenor_ORDER",        pk:"Day_Type",      usedBy:"DATA_FILES[ID_Tenor]",     returns:["Tenor Order","Tenor Type"],                                                        type:"lookup" },
+  { num:13, name:"Finance_GLS",        pk:"GL",            usedBy:"DATA_FILES[GL_Final]",     returns:["Level 1","Level 2","Level 3","Level 4","Final Level - MIS GTB"],                   type:"lookup" },
+  { num:14, name:"Table7",             pk:"L/F",           usedBy:"DATA_FILES[L/F_Final]",    returns:["Credit","(No return cols in Maps depen.)"],                                        type:"lookup" },
+  { num:15, name:"MAP2",               pk:"Major Product", usedBy:"DATA_FILES[L_Prod]",       returns:["(No return cols in Maps depen.)"],                                                 type:"lookup" },
+  { num:16, name:"Segments",           pk:"LOB",           usedBy:"DATA_FILES[LOB]",          returns:["Dept.","Dept2"],                                                                   type:"lookup" },
+  { num:17, name:"SEGMENTS2",          pk:"LOB",           usedBy:"DATA_FILES[LOB]",          returns:["GH","DH"],                                                                         type:"lookup" },
+  { num:18, name:"Prod_Codes",         pk:"Product Code",  usedBy:"DATA_FILES[PRD_Cod]",      returns:["Major Product","A and L","Balance Sheet Status"],                                  type:"lookup" },
+  { num:19, name:"Corresp_prd_Code",   pk:"Prd_Code",      usedBy:"DATA_FILES[PRD_Cod]",      returns:["Action"],                                                                          type:"lookup" },
+  { num:20, name:"PRD_COD_GL",         pk:"COD_PROD",      usedBy:"DATA_FILES[PRD_Cod]",      returns:["COD_GL_LIAB_BAL"],                                                                 type:"lookup" },
+  { num:21, name:"Finance_Gls_2",      pk:"GL",            usedBy:"DATA_FILES[Pre-Final_GL]", returns:["Level 1","Level 2","Level 3","Level 4","Final Level - MIS GTB"],                   type:"lookup" },
+  { num:22, name:"RM_COMBINED",        pk:"CUST_ID",       usedBy:"DATA_FILES[Synd_CUST]",    returns:["Relationship Officer","Relationship Manager","Senior Relationship Manager","Team Leader","Group Head","Dept Head","BDM"], type:"lookup" },
+  { num:23, name:"Day_Tenors",         pk:"No_Of_Days",    usedBy:"DATA_FILES[TENOR]",        returns:["Day_Type"],                                                                        type:"lookup" },
+  { num:24, name:"LOB (Derived)",      from:"CUSTOMERS",                                      returns:["Customer Name","LOB_2"],                                                           type:"derived" },
+  { num:25, name:"Dept_1 (Derived)",   from:"LOB + SEGMENTS",                                 returns:["Dept.","Dept2"],                                                                   type:"derived" },
+  { num:26, name:"Connector1 (Derived)", from:"LOB + Dept_1",                                 returns:["Connector1","(Used to join with MF[Conc])"],                                      type:"derived" },
+  { num:27, name:"Pre-Final_GL (Derived)", from:"Connector1 + Product",                       returns:["Pre-Final_GL","(Used to join with Finance_Gls_2[GL])"],                           type:"derived" },
+];
+
+// ── FIELD FORMULAS ──────────────────────────────────────────────────────────
+const FORMULAS = {
+  'L/F_1':                    'if([Cur]="EGP","LCY","FCY")',
+  'Connecor1':                'if([Major Product]="D100",[CUST_ID]&"|"&[L/F_1]&"|"&"D100",[CUST_ID]&"|"&[L/F_1]&"|"&[L_Prod])',
+  'Major Product':            'if([PRD_Cod]="D100","D100",related(Prod_Codes[Major Product]))',
+  'A/L Product':              'if([PRD_Cod]="D100","D100",if([Coll_Status]="In","Collateral",if([A-L]="A",related(Prod_Codes[A]),related(Prod_Codes[L]))))',
+  'On/Off Balance Sheet':     'related(Prod_Codes[Balance Sheet Status])',
+  'L_Prod':                   'if([Coll_Status]="In","Collateral",related(MAP1[Prod2]))',
+  'Coll_Status':              'if([COLLATERAL_AMT_LCY]=0,"Out","In")',
+  'A/L_Overall':              'if(OR(isblank([L_Prod]),[L_Prod]="N/A"),"Asset","Liab")',
+  'Int. Rate Final':          'MAX(sqrt([INT_RATE]^2),sqrt([TOT_RATE]^2))',
+  'Int. Status':              'if([Int. Rate Final]=0,"Non-Int. Bearing","Interest Bearing")',
+  'L/F_2':                    'if([Coll_Status]="Out","N/A",(if([COLL_CUR]="EGP","LCY","FCY")))',
+  'L/F_Final':                'if([Cur_Final]="EGP","LCY","FCY")',
+  'MF1':                      'related(MF[STATUS])',
+  'HM1':                      'related(TR_CLIENT[Status])',
+  'MF':                       'if(AND(isblank([MF1]),isblank([HM1])),"Normal","MF")',
+  'Corresp_Prd':              'related(Corresp_prd_Code[Action])',
+  'Corresp_GL':               'related(Table7[Credit])',
+  'Corresp_IN-Out':           'related(Exchange_Companies[In-Out])',
+  'TD-CD_Ratio':              'related(\'TD-CD_Ratio\'[Type 1])',
+  'A_L_LOB':                  'IF([PETROTRADE]<>"OUT",[PETROTRADE],related(CUSTOMERS[LOB]))',
+  'PETROTRADE':               'IF(AND([BUS_DATE]<44562,[CUST_ID]="5504172"),"Corporate-Structured Finance",...)',
+  'GHARABLY_SYND':            'IF(AND([CUST_ID]="7565034",[ACC_ID]<>"02100150002861"),"Corporate-Large Corp Alex","OUT")',
+  'Synd_CUST':                'if(and([GHARABLY_SYND]="OUT",[CUST_ID]="7565034"),[CUST_ID]&"|Synd",[CUST_ID])',
+  'PRE_LOB':                  'if([MF]="Normal",IF([PETROTRADE]<>"OUT",[PETROTRADE],related(CUSTOMERS[LOB_2])),"Mutual Funds")',
+  'LOB':                      'if([GHARABLY_SYND]="OUT",[PRE_LOB],[GHARABLY_SYND])',
+  'LOB_1':                    'if([LOB]="Mutual Funds","FI-Non-Core",[LOB])',
+  'Dept_1':                   'if([LOB_1]="FI-Non-Core","FI-Non-Core",if(left([LOB_1],2)="FI","FI-Core",[Dept]))',
+  'Dept':                     'related(Segments[Dept.])',
+  'Dept 2':                   'related(Segments[Dept2])',
+  'Connector2':               '[Dept 2]&"|"&[L/F_Final]&"|"&[Level2]&"|"&[Level3]',
+  'Area':                     'related(BRANCHES[Area])',
+  'Region':                   'related(BRANCHES[Region])',
+  'GL_ST':                    'left([GL_NO],1)',
+  'Pre-Final_GL':             'if(value([GL_ST])<>2,related(PRD_COD_GL[COD_GL_LIAB_BAL]),[GL_NO])',
+  'GL_Final':                 'if(value([BUS_DATE])>44104,if(and([Corresp_IN-Out]="In",[Corresp_Prd]="Conv"),[Corresp_GL],[Pre-Final_GL]),[Pre-Final_GL])',
+  'Tr-to-Cust Deposit':       'if(...,[Corresp_IN-Out]="In" and [Corresp_Prd]="Conv","Modified","Unchanged")',
+  'Level1':                   'if(isblank(related(Finance_GLs[Level 1])),[L_Prod],related(Finance_GLs[Level 1]))',
+  'Level2':                   'if(isblank(related(Finance_GLs[Level 2])),[L_Prod],related(Finance_GLs[Level 2]))',
+  'Level3':                   'if(isblank(related(Finance_GLs[Level 3])),[L_Prod],related(Finance_GLs[Level 3]))',
+  'Level4':                   'if(isblank(related(Finance_GLs[Level 4])),[L_Prod],related(Finance_GLs[Level 4]))',
+  'Final_Level_MIS':          'if(isblank(related(Finance_GLs[Final Level - MIS GTB])),[L_Prod],related(Finance_GLs[Final Level - MIS GTB]))',
+  'D_Tenor':                  'if(isblank(related(Day_Tenors[Day_Type])),"1M",related(Day_Tenors[Day_Type]))',
+  'Tenor_Order':              'related(Tenor_ORDER[Tenor Order])',
+  'Tenor Type':               'related(Tenor_ORDER[Tenor Type])',
+  'Orig_Bal':                 'if([Coll_Status]="In",[COLL_BAL],[BALANCE])',
+  'EGP_EQ_Total':             'if([Coll_Status]="In",[COLLATERAL_AMT_LCY],[EGP_EQ])',
+  'EGP_EQ_Total_K':           '[EGP_EQ_Total]/1000',
+  'EGP_EQ_Total_M':           '[EGP_EQ_Total_K]/1000',
+  'Cur_Final':                'if([Coll_Status]="Out",[Cur],if(isblank([COLL_CUR]),"EGP",[COLL_CUR]))',
+  'Amended Tenor':            'if(AND([TD-CD_Ratio]="CD",[TENOR]<(365*3)),"3Y",[D_Tenor])',
+  'Cur_Filter':               'if([510_Check]="Out","Out",if(len(trim([Cur_Final]))=0,"Out","In"))',
+  'REM Order':                'RELATED(\'FI_RM 2\'[Order])',
+  'REM Filter':               'IF(and([Level2]="Treasury Deposits",[REM Order]=1),"REM","NON-REM")',
+  'RM_Connect':               'if([REM Filter]="REM",[CUST_ID]&"|"&[REM Filter],[CUST_ID])',
+  'RO':                       'related(RM_COMBINED[Relationship Officer])',
+  'RM':                       'related(RM_COMBINED[Relationship Manager])',
+  'SRM':                      'related(RM_COMBINED[Senior Relationship Manager])',
+  'TL':                       'related(RM_COMBINED[Team Leader])',
+  'GH':                       'related(RM_COMBINED[Group Head])',
+  'DH':                       'related(RM_COMBINED[Dept Head])',
+  'GH_SEG':                   'related(SEGMENTS2[GH])',
+  'GH_SEG2':                  'related(SEGMENTS2[DH])',
+  'Relationship Officer':     'if(isblank([RO]),[Area],[RO])',
+  'Relationship Manager':     'if(isblank([RM]),[Area],[RM])',
+  'Senior Relationship Manager': 'if(isblank([SRM]),[Area],[SRM])',
+  'Team Leader':              'if(isblank([TL]),[Region],[TL])',
+  'Group Head':               'if(isblank([GH]),[Region],[GH])',
+  'Department Head':          'if(isblank([DH]),[GH_SEG2],[DH])',
+  'Calculated Column 1':      'if(isblank([GH]),0,if([GH_SEG2]=[GH],1,2))',
+  'Calculated Column 2':      'if([Original_SYS_LOB]=[LOB],"OK","Check")',
+  'Dept 3':                   'if(OR([Dept 2]="MF",[Dept 2]="FI"),"FI",[Dept 2])',
+  'Connect_1':                '[Dept_1]&"|"&[L/F_Final]&"|"&[Level2]&"|"&[Level3]',
+  'Connector1':               '[Dept 3]&"|"&[L/F_Final]&"|"&[Level2]&"|"&[Level3]',
+  'Customer Name':            'related(CUSTOMERS[Customer Name])',
+  'Collateral Status':        'if(value([GL_ST])=5,"Collateral","Normal")',
+  'MAT_DATE_2':               'if([MAT_DATE]=0,0,date(year([MAT_DATE]),month([MAT_DATE]),1))',
+  'TD_CHECK':                 'if([MAT_DATE]=0,"No-Date",if([MAT_DATE]<[BUS_DATE],"Passed",...))',
+  'MAT_YR':                   'if([MAT_DATE]=0,0,year([MAT_DATE]))',
+  'Check_Filter':             'if(OR([TD_CHECK]="No-Date",[TD_CHECK]="Passed"),"Out",if([MAT_YR]>(Year([BUS_DATE])+1),"Out","In"))',
+  'BD_Stat':                  'related(DAYS[STATUS])',
+  'BD_Order':                 'related(DAYS[Order])',
+  'Error_Check1':             'if([Dept 3]="Retail","Retail - Out of Scope",if(isblank([LOB]),"Missing LOB",...))',
+  'L1':                       'related(Finance_GLs_2[Level 1])',
+  'L2':                       'related(Finance_GLs_2[Level 2])',
+  'L3':                       'related(Finance_GLs_2[Level 3])',
+  'L4':                       'related(Finance_GLs_2[Level 4])',
+  'Fin_MIS_Prod_PRE':         'related(Finance_GLs_2[Final Level - MIS GTB])',
+  'BDM':                      'if(isblank(related(RM_COMBINED[BDM])),"N/A",related(RM_COMBINED[BDM]))',
+  'MAT_DATE_2 (Quarter)':     'CONCATENATE("Qtr", INT((MONTH([MAT_DATE_2]) + 2) / 3))',
+  'MAT_DATE_2 (Month Index)': 'MONTH([MAT_DATE_2])',
+  'MAT_DATE_2 (Month)':       'FORMAT([MAT_DATE_2], "MMM")',
+  '510_Check':                'if([BUS_DATE]>44592,if(and([PRD_Cod]="510",[DEF_RATE]=4.88),"Out","In"),"In")',
+  'EOY_FX_RATE':              'related(EOY_CLOS_RATES[CCY])',
+  'NORMALIZED_BAL':           '[Orig_Bal]*[EOY_FX_RATE]',
+  'NORM_K':                   '[NORMALIZED_BAL]/1000',
+  'NORM_M':                   '[NORMALIZED_BAL]/1000000',
+  'Connector 3':              '[LOB]&"|"&[L/F_Final]&"|"&[Level2]&"|"&[Level3]',
+  'LB BD LOB':                'IF(DATA_FILES[LOB]="Corporate (GTB)"||...,"Retail-LB Mass",DATA_FILES[LOB])',
+  'BUS_DATE (Quarter)':       'CONCATENATE("Qtr", INT((MONTH([BUS_DATE]) + 2) / 3))',
+  'BUS_DATE (Month Index)':   'MONTH([BUS_DATE])',
+  'BUS_DATE (Month)':         'FORMAT([BUS_DATE], "MMM")',
+};
+
+// ── MAP LOOKUP for tooltip ──────────────────────────────────────────────────
+const FIELD_MAP_LOOKUP = {
+  'Major Product':   '18. Prod_Codes → Major Product', 'A/L Product': '18. Prod_Codes → A and L',
+  'On/Off Balance Sheet': '18. Prod_Codes → Balance Sheet Status',
+  'L_Prod':          '1. MAP1 → PROD 2', 'Type 1': '2. TD-CD_Ratio → Type 1',
+  'Area':            '4. BRANCHES → Area', 'Region': '4. BRANCHES → Region',
+  'BD_Stat':         '5. DAYS → STATUS', 'BD_Order': '5. DAYS → Order',
+  'MF1':             '6. MF → STATUS', 'HM1': '10. TR_CLIENT → status',
+  'EOY_FX_RATE':     '7. EOY_CLOS_RATES → CCY',
+  'REM Order':       '8. FI_RM_2 → Order',
+  'Customer Name':   '9. CUSTOMERS → Customer Name', 'PRE_LOB': '9. CUSTOMERS → LOB_2',
+  'Corresp_IN-Out':  '11. Exchange_Companies → In-Out',
+  'Tenor_Order':     '12. Tenor_ORDER → Tenor Order', 'Tenor Type': '12. Tenor_ORDER → Tenor Type',
+  'Level1':          '13. Finance_GLS → Level 1', 'Level2': '13. Finance_GLS → Level 2',
+  'Level3':          '13. Finance_GLS → Level 3', 'Level4': '13. Finance_GLS → Level 4',
+  'Final_Level_MIS': '13. Finance_GLS → Final Level - MIS GTB',
+  'Corresp_GL':      '14. Table7 → Credit',
+  'Dept':            '16. Segments → Dept.', 'Dept 2': '16. Segments → Dept2',
+  'GH_SEG':          '17. SEGMENTS2 → GH', 'GH_SEG2': '17. SEGMENTS2 → DH',
+  'Corresp_Prd':     '19. Corresp_prd_Code → Action',
+  'Pre-Final_GL':    '20. PRD_COD_GL → COD_GL_LIAB_BAL',
+  'L1':              '21. Finance_Gls_2 → Level 1', 'L2': '21. Finance_Gls_2 → Level 2',
+  'L3':              '21. Finance_Gls_2 → Level 3', 'L4': '21. Finance_Gls_2 → Level 4',
+  'Fin_MIS_Prod_PRE':'21. Finance_Gls_2 → Final Level - MIS GTB',
+  'RO':              '22. RM_COMBINED → Rel. Officer', 'RM': '22. RM_COMBINED → Rel. Manager',
+  'SRM':             '22. RM_COMBINED → Sr. Rel. Manager', 'TL': '22. RM_COMBINED → Team Leader',
+  'GH':              '22. RM_COMBINED → Group Head', 'DH': '22. RM_COMBINED → Dept Head',
+  'BDM':             '22. RM_COMBINED → BDM',
+  'D_Tenor':         '23. Day_Tenors → Day_Type',
+};
+
+// ── NODE SETS ────────────────────────────────────────────────────────────────
+const RAW_FIELDS = new Set([
+  'Source.Name','REP_DATE','BUS_DATE','Original_SYS_LOB','BRN_No','BRN_Name','CUST_ID','CUST_NAME',
+  'PRD_Cod','PRD_Desc','PROD_TYP','A-L','ACC_ID','TD_ID','Cur','ACC_OP_DAT','ST_DATE','MAT_DATE',
+  'TENOR','GL_NO','GL_DESC','ACC_STAT','BALANCE','FX_RATE','EGP_EQ','INT_RATE','COLL_BAL',
+  'COLL_CUR','COLLATERAL_AMT_LCY','DEF_RATE','SP_RATE','TOT_RATE','Balance_Type',
+]);
+
+const MAP_RESULT_FIELDS = new Set([
+  'MF1','HM1','Corresp_Prd','Corresp_GL','Corresp_IN-Out','TD-CD_Ratio',
+  'Area','Region','D_Tenor','Tenor_Order','Tenor Type',
+  'BD_Stat','BD_Order','RO','RM','SRM','TL','GH','DH','GH_SEG','GH_SEG2','BDM',
+  'L1','L2','L3','L4','Fin_MIS_Prod_PRE','Dept','Dept 2','Customer Name','EOY_FX_RATE',
+  'Major Product','On/Off Balance Sheet','Level1','Level2','Level3','Level4','Final_Level_MIS',
+  'Pre-Final_GL','REM Order',
+]);
+
+const CONNECTORS = new Set([
+  'Connecor1','Connector1','Connector2','Connect_1','Connector 3','RM_Connect',
+  'Dept_1','LOB_1','Synd_CUST','LOB','PETROTRADE','GHARABLY_SYND',
+]);
+
+const FINAL_OUTPUTS = new Set([
+  'GL_Final','Tr-to-Cust Deposit',
+  'NORMALIZED_BAL','NORM_K','NORM_M','EGP_EQ_Total','EGP_EQ_Total_K','EGP_EQ_Total_M',
+  'Orig_Bal','Error_Check1','Collateral Status',
+  'Relationship Officer','Relationship Manager','Senior Relationship Manager',
+  'Team Leader','Group Head','Department Head',
+  'Calculated Column 1','Calculated Column 2',
+  'LB BD LOB',
+]);
+
+function getCategory(name) {
+  if (CONNECTORS.has(name)) return 'connector';
+  if (FINAL_OUTPUTS.has(name)) return 'output';
+  if (MAP_RESULT_FIELDS.has(name)) return 'map';
+  if (RAW_FIELDS.has(name)) return 'source';
+  return 'derived';
+}
+
+// ── FULL DEPENDENCY LIST ─────────────────────────────────────────────────────
+const deps = [
+  // L/F_1
+  ['L/F_1','Cur'],
+  // Connecor1 (join key)
+  ['Connecor1','Major Product'],['Connecor1','CUST_ID'],['Connecor1','L/F_1'],['Connecor1','L_Prod'],
+  // Major Product (from Prod_Codes via PRD_Cod)
+  ['Major Product','PRD_Cod'],
+  // A/L Product
+  ['A/L Product','PRD_Cod'],['A/L Product','Coll_Status'],
+  // On/Off Balance Sheet
+  ['On/Off Balance Sheet','PRD_Cod'],
+  // L_Prod (from MAP1)
+  ['L_Prod','Coll_Status'],
+  // Coll_Status
+  ['Coll_Status','COLLATERAL_AMT_LCY'],
+  // A/L_Overall
+  ['A/L_Overall','L_Prod'],
+  // Int. Rate
+  ['Int. Rate Final','INT_RATE'],['Int. Rate Final','TOT_RATE'],
+  ['Int. Status','Int. Rate Final'],
+  // L/F flags
+  ['L/F_2','Coll_Status'],['L/F_2','COLL_CUR'],
+  ['L/F_Final','Cur_Final'],
+  // MF flags (map lookups)
+  ['MF','MF1'],['MF','HM1'],
+  // LOB chain
+  ['A_L_LOB','PETROTRADE'],
+  ['PETROTRADE','BUS_DATE'],['PETROTRADE','CUST_ID'],
+  ['GHARABLY_SYND','CUST_ID'],['GHARABLY_SYND','ACC_ID'],
+  ['Synd_CUST','GHARABLY_SYND'],['Synd_CUST','CUST_ID'],
+  ['PRE_LOB','PETROTRADE'],['PRE_LOB','MF'],
+  ['LOB','GHARABLY_SYND'],['LOB','PRE_LOB'],
+  ['LOB_1','LOB'],
+  // Dept chain
+  ['Dept_1','LOB_1'],['Dept_1','Dept'],
+  ['Dept 3','Dept 2'],
+  // Connectors
+  ['Connector2','Dept 2'],['Connector2','L/F_Final'],['Connector2','Level2'],['Connector2','Level3'],
+  ['Connect_1','Dept_1'],['Connect_1','L/F_Final'],['Connect_1','Level2'],['Connect_1','Level3'],
+  ['Connector1','Dept 3'],['Connector1','L/F_Final'],['Connector1','Level2'],['Connector1','Level3'],
+  ['Connector 3','LOB'],['Connector 3','L/F_Final'],['Connector 3','Level2'],['Connector 3','Level3'],
+  // GL chain
+  ['GL_ST','GL_NO'],
+  ['Pre-Final_GL','GL_ST'],['Pre-Final_GL','GL_NO'],
+  ['GL_Final','BUS_DATE'],['GL_Final','Corresp_IN-Out'],['GL_Final','Corresp_Prd'],['GL_Final','Corresp_GL'],['GL_Final','Pre-Final_GL'],
+  ['Tr-to-Cust Deposit','BUS_DATE'],['Tr-to-Cust Deposit','Corresp_IN-Out'],['Tr-to-Cust Deposit','Corresp_Prd'],
+  // Levels (from Finance_GLS via L_Prod)
+  ['Level1','L_Prod'],['Level2','L_Prod'],['Level3','L_Prod'],['Level4','L_Prod'],['Final_Level_MIS','L_Prod'],
+  // Finance_Gls_2 outputs
+  ['L1','Pre-Final_GL'],['L2','Pre-Final_GL'],['L3','Pre-Final_GL'],['L4','Pre-Final_GL'],['Fin_MIS_Prod_PRE','Pre-Final_GL'],
+  // Balance calcs
+  ['Orig_Bal','Coll_Status'],['Orig_Bal','COLL_BAL'],['Orig_Bal','BALANCE'],
+  ['EGP_EQ_Total','Coll_Status'],['EGP_EQ_Total','COLLATERAL_AMT_LCY'],['EGP_EQ_Total','EGP_EQ'],
+  ['EGP_EQ_Total_K','EGP_EQ_Total'],
+  ['EGP_EQ_Total_M','EGP_EQ_Total_K'],
+  // Currency
+  ['Cur_Final','Coll_Status'],['Cur_Final','Cur'],['Cur_Final','COLL_CUR'],
+  // Tenor
+  ['Amended Tenor','TD-CD_Ratio'],['Amended Tenor','TENOR'],['Amended Tenor','D_Tenor'],
+  // Filters
+  ['Cur_Filter','510_Check'],['Cur_Filter','Cur_Final'],
+  ['510_Check','BUS_DATE'],['510_Check','PRD_Cod'],['510_Check','DEF_RATE'],
+  // REM
+  ['REM Order','Level2'],
+  ['REM Filter','REM Order'],['REM Filter','CUST_ID'],['REM Filter','Level2'],
+  ['RM_Connect','REM Filter'],['RM_Connect','CUST_ID'],
+  // RM lookups
+  ['Relationship Officer','RO'],['Relationship Officer','Area'],
+  ['Relationship Manager','RM'],['Relationship Manager','Area'],
+  ['Senior Relationship Manager','SRM'],['Senior Relationship Manager','Area'],
+  ['Team Leader','TL'],['Team Leader','Region'],
+  ['Group Head','GH'],['Group Head','Region'],
+  ['Department Head','DH'],['Department Head','GH_SEG2'],
+  ['Calculated Column 1','GH'],['Calculated Column 1','GH_SEG2'],
+  ['Calculated Column 2','Original_SYS_LOB'],['Calculated Column 2','LOB'],
+  // Date calcs
+  ['Collateral Status','GL_ST'],
+  ['MAT_DATE_2','MAT_DATE'],
+  ['TD_CHECK','MAT_DATE'],['TD_CHECK','BUS_DATE'],
+  ['MAT_YR','MAT_DATE'],
+  ['Check_Filter','TD_CHECK'],['Check_Filter','MAT_YR'],['Check_Filter','BUS_DATE'],
+  ['MAT_DATE_2 (Quarter)','MAT_DATE_2'],['MAT_DATE_2 (Month Index)','MAT_DATE_2'],['MAT_DATE_2 (Month)','MAT_DATE_2'],
+  ['BUS_DATE (Quarter)','BUS_DATE'],['BUS_DATE (Month Index)','BUS_DATE'],['BUS_DATE (Month)','BUS_DATE'],
+  // Normalization
+  ['NORMALIZED_BAL','Orig_Bal'],['NORMALIZED_BAL','EOY_FX_RATE'],
+  ['NORM_K','NORMALIZED_BAL'],
+  ['NORM_M','NORMALIZED_BAL'],
+  // Error check
+  ['Error_Check1','Dept 3'],['Error_Check1','LOB'],['Error_Check1','On/Off Balance Sheet'],['Error_Check1','GL_Final'],
+  // LOB derivatives
+  ['LB BD LOB','LOB'],
+  ['A_L_LOB','LOB'],
+  // Synd_CUST → RM_COMBINED
+  ['RO','Synd_CUST'],['RM','Synd_CUST'],['SRM','Synd_CUST'],['TL','Synd_CUST'],['GH','Synd_CUST'],['DH','Synd_CUST'],['BDM','Synd_CUST'],
+  // GH_SEG / GH_SEG2 from SEGMENTS2 via LOB
+  ['GH_SEG','LOB'],['GH_SEG2','LOB'],
+  // D_Tenor from Day_Tenors via TENOR
+  ['D_Tenor','TENOR'],
+  // Tenor maps
+  ['Tenor_Order','D_Tenor'],['Tenor Type','D_Tenor'],
+  // Area/Region from BRANCHES via BRN_No
+  ['Area','BRN_No'],['Region','BRN_No'],
+  // BD_Stat/BD_Order from DAYS via BUS_DATE
+  ['BD_Stat','BUS_DATE'],['BD_Order','BUS_DATE'],
+  // MF1/HM1 raw lookups
+  ['MF1','Connecor1'],['HM1','CUST_ID'],
+  // Corresp lookups from PRD_Cod
+  ['Corresp_Prd','PRD_Cod'],['Corresp_GL','GL_Final'],['Corresp_IN-Out','CUST_ID'],
+  // TD-CD_Ratio via A/L Product
+  ['TD-CD_Ratio','A/L Product'],
+  // EOY_FX_RATE via Cur
+  ['EOY_FX_RATE','Cur'],
+  // REM Order
+  ['REM Order','Level2'],
+  // Customer Name
+  ['Customer Name','CUST_ID'],
+  // Dept/Dept 2 from Segments via LOB
+  ['Dept','LOB'],['Dept 2','LOB'],
+];
+
+// ── BUILD GRAPH ──────────────────────────────────────────────────────────────
+const allNodes = new Set();
+deps.forEach(([a,b]) => { allNodes.add(a); allNodes.add(b); });
+const nodeList = [...allNodes];
+
+const W = 2400, NW = 152, NH = 36, PX = 20, PY = 50;
+const groups = { source:[], derived:[], map:[], connector:[], output:[] };
+nodeList.forEach(n => groups[getCategory(n)].push(n));
+const colCount = Math.floor((W - PX*2 + 10) / (NW + 10));
+
+function layoutGroup(nodes, startY) {
+  const rows = [];
+  for (let i=0; i<nodes.length; i+=colCount) rows.push(nodes.slice(i,i+colCount));
+  rows.forEach((row, ri) => {
+    row.forEach((n, ci) => { positions[n] = { x: PX + ci*(NW+10), y: startY + ri*(NH+8) }; });
+  });
+  return startY + Math.ceil(nodes.length/colCount)*(NH+8) + 28;
+}
+
+const positions = {};
+const SECTION_GAP = 40;
+let curY = PY;
+const sectionOrder = ['source','derived','map','connector','output'];
+const sectionLabels = { source:'Source / raw fields', derived:'Derived fields', map:'Map lookup results', connector:'Connector / join fields', output:'Output / final fields' };
+const sectionY = {};
+sectionOrder.forEach(cat => {
+  sectionY[cat] = curY + 16;
+  curY = layoutGroup(groups[cat], curY + 24, cat) + SECTION_GAP;
+});
+const SVG_H = curY + 30;
+
+const svg = document.getElementById('main-svg');
+svg.setAttribute('height', SVG_H);
+svg.setAttribute('viewBox', `0 0 ${W} ${SVG_H}`);
+
+// Defs / arrows
+const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+const markerDefs = [
+  ['arr-src',   '#2ea043'],['arr-der',  '#388bfd'],
+  ['arr-map',   '#d29922'],['arr-out',  '#da3633'],['arr-con',  '#8957e5']
+];
+markerDefs.forEach(([id, color]) => {
+  const m = document.createElementNS('http://www.w3.org/2000/svg','marker');
+  m.setAttribute('id',id); m.setAttribute('viewBox','0 0 10 10');
+  m.setAttribute('refX','9'); m.setAttribute('refY','5');
+  m.setAttribute('markerWidth','5'); m.setAttribute('markerHeight','5');
+  m.setAttribute('orient','auto-start-reverse');
+  const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d','M2 2L8 5L2 8'); p.setAttribute('fill','none');
+  p.setAttribute('stroke',color); p.setAttribute('stroke-width','1.5');
+  p.setAttribute('stroke-linecap','round'); p.setAttribute('stroke-linejoin','round');
+  m.appendChild(p); defs.appendChild(m);
+});
+svg.appendChild(defs);
+
+const catMarker = { source:'arr-src', derived:'arr-der', map:'arr-map', output:'arr-out', connector:'arr-con' };
+
+const edgeLayer = document.createElementNS('http://www.w3.org/2000/svg','g'); edgeLayer.id='edge-layer'; svg.appendChild(edgeLayer);
+const nodeLayer = document.createElementNS('http://www.w3.org/2000/svg','g'); nodeLayer.id='node-layer'; svg.appendChild(nodeLayer);
+const labelLayer = document.createElementNS('http://www.w3.org/2000/svg','g'); labelLayer.id='label-layer'; svg.appendChild(labelLayer);
+
+// Section labels
+sectionOrder.forEach(cat => {
+  const cc = CATEGORIES[cat];
+  const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x','10'); t.setAttribute('y', sectionY[cat]);
+  t.setAttribute('font-size','10'); t.setAttribute('font-weight','600');
+  t.setAttribute('font-family','IBM Plex Mono, monospace');
+  t.setAttribute('fill', cc.stroke); t.setAttribute('opacity','0.8');
+  t.setAttribute('letter-spacing','0.1em');
+  t.textContent = sectionLabels[cat].toUpperCase();
+  labelLayer.appendChild(t);
+  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1','0'); line.setAttribute('x2',W);
+  line.setAttribute('y1',sectionY[cat]+5); line.setAttribute('y2',sectionY[cat]+5);
+  line.setAttribute('stroke',cc.stroke); line.setAttribute('stroke-width','0.5'); line.setAttribute('opacity','0.2');
+  labelLayer.appendChild(line);
+});
+
+// Edges
+const edgeEls = {}; const seenEdges = new Set();
+deps.forEach(([from, to]) => {
+  const key = `${from}→${to}`;
+  if (seenEdges.has(key) || from === to) return;
+  seenEdges.add(key);
+  const p1 = positions[from], p2 = positions[to];
+  if (!p1 || !p2) return;
+  const x1 = p1.x + NW/2, y1 = p1.y + NH;
+  const x2 = p2.x + NW/2, y2 = p2.y;
+  const cat = getCategory(from);
+  const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+  const midY = (y1+y2)/2;
+  path.setAttribute('d', `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`);
+  path.setAttribute('fill','none');
+  path.setAttribute('stroke', CATEGORIES[cat].stroke);
+  path.setAttribute('stroke-width','0.8');
+  path.setAttribute('opacity','0.25');
+  path.setAttribute('marker-end',`url(#${catMarker[cat]})`);
+  path.setAttribute('class','edge');
+  path.dataset.from = from; path.dataset.to = to;
+  edgeLayer.appendChild(path);
+  edgeEls[key] = path;
+});
+
+// Nodes
+const nodeEls = {};
+nodeList.forEach(name => {
+  const pos = positions[name];
+  if (!pos) return;
+  const cat = getCategory(name);
+  const c = CATEGORIES[cat];
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class','node-group'); g.setAttribute('data-name',name); g.setAttribute('data-cat',cat);
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x',pos.x); rect.setAttribute('y',pos.y);
+  rect.setAttribute('width',NW); rect.setAttribute('height',NH);
+  rect.setAttribute('rx','4'); rect.setAttribute('fill',c.fill);
+  rect.setAttribute('stroke',c.stroke); rect.setAttribute('stroke-width','1');
+  rect.setAttribute('opacity','0.9');
+  g.appendChild(rect);
+  const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+  label.setAttribute('x', pos.x + NW/2); label.setAttribute('y', pos.y + NH/2);
+  label.setAttribute('text-anchor','middle'); label.setAttribute('dominant-baseline','central');
+  label.setAttribute('font-size','10'); label.setAttribute('font-weight','500');
+  label.setAttribute('font-family','IBM Plex Mono, monospace');
+  label.setAttribute('fill', c.text); label.setAttribute('pointer-events','none');
+  const displayName = name.length > 18 ? name.substring(0,16)+'…' : name;
+  label.textContent = displayName;
+  g.appendChild(label);
+  g.addEventListener('mouseenter', (e) => showTooltip(e, name));
+  g.addEventListener('mousemove', (e) => moveTooltip(e));
+  g.addEventListener('mouseleave', hideTooltip);
+  g.addEventListener('click', () => highlight(name));
+  nodeLayer.appendChild(g);
+  nodeEls[name] = g;
+});
+
+// Interactions
+function getConnected(name) {
+  const upstream = deps.filter(([f,t])=>t===name).map(([f])=>f);
+  const downstream = deps.filter(([f,t])=>f===name).map(([,t])=>t);
+  return { upstream, downstream };
+}
+
+let activeNode = null;
+function highlight(name) {
+  if (activeNode === name) {
+    activeNode = null;
+    Object.values(nodeEls).forEach(g => g.classList.remove('highlighted','dimmed'));
+    Object.values(edgeEls).forEach(e => { e.classList.remove('highlighted','dimmed'); e.setAttribute('opacity','0.25'); });
+    return;
+  }
+  activeNode = name;
+  const { upstream, downstream } = getConnected(name);
+  const related = new Set([name, ...upstream, ...downstream]);
+  Object.values(nodeEls).forEach(g => {
+    const n = g.dataset.name;
+    if (related.has(n)) { g.classList.remove('dimmed'); g.classList.toggle('highlighted', n===name); }
+    else { g.classList.add('dimmed'); g.classList.remove('highlighted'); }
+  });
+  Object.values(edgeEls).forEach(e => {
+    if (related.has(e.dataset.from) && related.has(e.dataset.to)) {
+      e.classList.remove('dimmed'); e.classList.add('highlighted'); e.setAttribute('opacity','0.85');
+    } else { e.classList.add('dimmed'); e.classList.remove('highlighted'); e.setAttribute('opacity','0.03'); }
+  });
+}
+
+const tooltip = document.getElementById('tooltip');
+function showTooltip(e, name) {
+  const { upstream, downstream } = getConnected(name);
+  const cat = getCategory(name);
+  let html = `<div class="tt-title">${name}</div>`;
+  html += `<div class="tt-row" style="color:#6e7681">Category: <span style="color:${CATEGORIES[cat].stroke}">${CATEGORIES[cat].label}</span></div>`;
+  if (FIELD_MAP_LOOKUP[name]) {
+    html += `<div class="tt-section">Map Source</div><div class="tt-row tt-map">📋 ${FIELD_MAP_LOOKUP[name]}</div>`;
+  }
+  if (upstream.length) {
+    html += `<div class="tt-section">Depends on (${upstream.length})</div>`;
+    html += `<div class="tt-row tt-dep">${upstream.slice(0,6).join(', ')}${upstream.length>6?' …':''}</div>`;
+  }
+  if (downstream.length) {
+    html += `<div class="tt-section">Used by (${downstream.length})</div>`;
+    html += `<div class="tt-row tt-used">${downstream.slice(0,6).join(', ')}${downstream.length>6?' …':''}</div>`;
+  }
+  if (FORMULAS[name]) {
+    html += `<div class="tt-section">Formula</div><div class="tt-formula">${FORMULAS[name]}</div>`;
+  }
+  html += `<div class="tt-hint">Click to trace all connections</div>`;
+  tooltip.innerHTML = html;
+  tooltip.style.display = 'block';
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  let left = e.clientX + 14, top = e.clientY - 10;
+  if (left + 310 > window.innerWidth) left = e.clientX - 320;
+  tooltip.style.left = left + 'px'; tooltip.style.top = top + 'px';
+}
+function hideTooltip() { tooltip.style.display = 'none'; }
+
+// Search
+function onSearch(val) {
+  val = val.toLowerCase().trim();
+  Object.values(nodeEls).forEach(g => {
+    if (!val || g.dataset.name.toLowerCase().includes(val)) g.classList.remove('dimmed');
+    else g.classList.add('dimmed');
+  });
+  if (!val) {
+    Object.values(edgeEls).forEach(e => { e.setAttribute('opacity','0.25'); e.classList.remove('dimmed'); });
+  } else {
+    const matched = nodeList.filter(n => n.toLowerCase().includes(val));
+    Object.values(edgeEls).forEach(e => {
+      if (matched.includes(e.dataset.from) || matched.includes(e.dataset.to)) { e.setAttribute('opacity','0.4'); e.classList.remove('dimmed'); }
+      else { e.classList.add('dimmed'); e.setAttribute('opacity','0.03'); }
+    });
+  }
+}
+
+// Filter pills
+const pillsEl = document.getElementById('pills');
+['all',...sectionOrder].forEach(cat => {
+  const pill = document.createElement('button');
+  pill.className = 'pill' + (cat==='all' ? ' active' : '');
+  pill.textContent = cat === 'all' ? 'All fields' : CATEGORIES[cat].label;
+  pill.onclick = () => {
+    document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active'); activeNode = null;
+    Object.values(nodeEls).forEach(g => {
+      if (cat === 'all' || g.dataset.cat === cat) g.classList.remove('dimmed');
+      else g.classList.add('dimmed');
+    });
+    Object.values(edgeEls).forEach(e => {
+      const fc = getCategory(e.dataset.from), tc = getCategory(e.dataset.to);
+      if (cat === 'all' || fc === cat || tc === cat) { e.setAttribute('opacity','0.25'); e.classList.remove('dimmed'); }
+      else { e.classList.add('dimmed'); e.setAttribute('opacity','0.03'); }
+    });
+  };
+  pillsEl.appendChild(pill);
+});
+
+// ── TAB SWITCH ───────────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('graph-panel').classList.toggle('active', tab==='graph');
+  document.getElementById('maps-panel').classList.toggle('active', tab==='maps');
+}
+
+// ── MAPS PANEL ───────────────────────────────────────────────────────────────
+const mapsGrid = document.getElementById('maps-grid');
+const MAPS_DATA = [
+  { num:1,  name:"MAP1",               pk:"L",            usedBy:"DATA_FILES[L]",              joinCol:"L",              returns:["PROD 2"],                                                                        type:"lookup" },
+  { num:2,  name:"TD-CD_Ratio",        pk:"A/L Product",  usedBy:"DATA_FILES[A/L Product]",    joinCol:"A/L Product",    returns:["Type 1"],                                                                        type:"lookup" },
+  { num:3,  name:"Table1",             pk:"Acc_Num",       usedBy:"DATA_FILES[Acc_Num]",        joinCol:"Acc_Num",        returns:["(No return cols in Maps depen.)"],                                                type:"lookup" },
+  { num:4,  name:"BRANCHES",           pk:"BRN_COD",       usedBy:"DATA_FILES[BRN_No]",         joinCol:"BRN_No",         returns:["Area","Region"],                                                                  type:"lookup" },
+  { num:5,  name:"DAYS",               pk:"BUS_DATE",      usedBy:"DATA_FILES[BUS_DATE]",       joinCol:"BUS_DATE",       returns:["STATUS","Order"],                                                                 type:"lookup" },
+  { num:6,  name:"MF",                 pk:"Conc",          usedBy:"DATA_FILES[Connector1]",     joinCol:"Connector1",     returns:["STATUS"],                                                                         type:"lookup" },
+  { num:7,  name:"EOY_CLOS_RATES",     pk:"Column1",       usedBy:"DATA_FILES[Column1]",        joinCol:"Column1",        returns:["CCY"],                                                                            type:"lookup" },
+  { num:8,  name:"FI_RM_2",            pk:"CUST_ID",       usedBy:"DATA_FILES[CUST_ID]",        joinCol:"REM Order (via Synd_CUST)", returns:["Order"],                                                              type:"lookup" },
+  { num:9,  name:"CUSTOMERS",          pk:"Customer ID",   usedBy:"DATA_FILES[CUST_ID]",        joinCol:"CUST_ID",        returns:["Customer Name","LOB_2"],                                                          type:"lookup" },
+  { num:10, name:"TR_CLIENT",          pk:"CUST_ID",       usedBy:"DATA_FILES[CUST_ID]",        joinCol:"CUST_ID",        returns:["status"],                                                                         type:"lookup" },
+  { num:11, name:"Exchange_Companies", pk:"Customer ID",   usedBy:"DATA_FILES[Customer ID]",    joinCol:"Customer ID",    returns:["In-Out"],                                                                         type:"lookup" },
+  { num:12, name:"Tenor_ORDER",        pk:"Day_Type",      usedBy:"DATA_FILES[ID_Tenor]",       joinCol:"D_Tenor (from Day_Tenors)", returns:["Tenor Order","Tenor Type"],                                           type:"lookup" },
+  { num:13, name:"Finance_GLS",        pk:"GL",            usedBy:"DATA_FILES[GL_Final]",       joinCol:"L_Prod",         returns:["Level 1","Level 2","Level 3","Level 4","Final Level - MIS GTB"],                  type:"lookup" },
+  { num:14, name:"Table7",             pk:"L/F",           usedBy:"DATA_FILES[L/F_Final]",      joinCol:"L/F_Final",      returns:["Credit"],                                                                         type:"lookup" },
+  { num:15, name:"MAP2",               pk:"Major Product", usedBy:"DATA_FILES[L_Prod]",         joinCol:"L_Prod",         returns:["(No return cols in Maps depen.)"],                                                type:"lookup" },
+  { num:16, name:"Segments",           pk:"LOB",           usedBy:"DATA_FILES[LOB]",            joinCol:"LOB",            returns:["Dept.","Dept2"],                                                                  type:"lookup" },
+  { num:17, name:"SEGMENTS2",          pk:"LOB",           usedBy:"DATA_FILES[LOB]",            joinCol:"LOB",            returns:["GH","DH"],                                                                        type:"lookup" },
+  { num:18, name:"Prod_Codes",         pk:"Product Code",  usedBy:"DATA_FILES[PRD_Cod]",        joinCol:"PRD_Cod",        returns:["Major Product","A and L","Balance Sheet Status"],                                 type:"lookup" },
+  { num:19, name:"Corresp_prd_Code",   pk:"Prd_Code",      usedBy:"DATA_FILES[PRD_Cod]",        joinCol:"PRD_Cod",        returns:["Action"],                                                                         type:"lookup" },
+  { num:20, name:"PRD_COD_GL",         pk:"COD_PROD",      usedBy:"DATA_FILES[PRD_Cod]",        joinCol:"PRD_Cod",        returns:["COD_GL_LIAB_BAL"],                                                                type:"lookup" },
+  { num:21, name:"Finance_Gls_2",      pk:"GL",            usedBy:"DATA_FILES[Pre-Final_GL]",   joinCol:"Pre-Final_GL",   returns:["Level 1","Level 2","Level 3","Level 4","Final Level - MIS GTB"],                  type:"lookup" },
+  { num:22, name:"RM_COMBINED",        pk:"CUST_ID",       usedBy:"DATA_FILES[Synd_CUST]",      joinCol:"Synd_CUST",      returns:["Relationship Officer","Relationship Manager","Senior Relationship Manager","Team Leader","Group Head","Dept Head","BDM"], type:"lookup" },
+  { num:23, name:"Day_Tenors",         pk:"No_Of_Days",    usedBy:"DATA_FILES[TENOR]",          joinCol:"TENOR",          returns:["Day_Type"],                                                                       type:"lookup" },
+  { num:24, name:"LOB",                isDerived:true, derivedFrom:"CUSTOMERS",                                           returns:["Customer Name","LOB_2"],   note:"Derived column: chains CUSTOMERS lookup",         type:"derived" },
+  { num:25, name:"Dept_1",             isDerived:true, derivedFrom:"LOB + SEGMENTS",                                      returns:["Dept.","Dept2"],           note:"Derived: if LOB_1=FI-Non-Core → FI-Core else Dept", type:"derived" },
+  { num:26, name:"Connector1",         isDerived:true, derivedFrom:"LOB + Dept_1",                                        returns:["Connector1"],              note:"[Dept 3]|[L/F_Final]|[Level2]|[Level3] — joins MF[Conc]", type:"derived" },
+  { num:27, name:"Pre-Final_GL",       isDerived:true, derivedFrom:"Connector1 + Product",                                returns:["Pre-Final_GL"],            note:"if(GL_ST≠2, PRD_COD_GL[COD_GL_LIAB_BAL], GL_NO) — joins Finance_Gls_2[GL]", type:"derived" },
+];
+
+MAPS_DATA.forEach(m => {
+  const card = document.createElement('div');
+  card.className = 'map-card';
+  let html = `<div class="mc-header">
+    <span class="mc-num">#${m.num}</span>
+    <span class="mc-name">${m.name}</span>
+    ${m.isDerived ? '<span class="mc-derived">DERIVED</span>' : ''}
+  </div>`;
+  if (!m.isDerived) {
+    html += `<div class="map-row"><span class="mr-label">PK:</span><span class="mr-key">${m.pk}</span></div>`;
+    html += `<div class="map-row"><span class="mr-label">Join col:</span><span class="mr-val">${m.joinCol}</span></div>`;
+    html += `<div class="map-row"><span class="mr-label">Used by:</span><span class="mr-val" style="font-size:10px;color:#58a6ff;font-family:'IBM Plex Mono',monospace">${m.usedBy}</span></div>`;
+  } else {
+    html += `<div class="map-row"><span class="mr-label">From:</span><span class="mr-val">${m.derivedFrom}</span></div>`;
+    if (m.note) html += `<div class="map-row"><span class="mr-label">Logic:</span><span class="mr-val" style="font-size:10px;color:#8b949e">${m.note}</span></div>`;
+  }
+  html += `<div class="map-row"><span class="mr-label">Returns:</span><div class="mr-tags">`;
+  m.returns.forEach(r => { html += `<span class="mr-tag ${m.isDerived?'dep':''}">${r}</span>`; });
+  html += `</div></div>`;
+  card.innerHTML = html;
+  mapsGrid.appendChild(card);
+});
+</script>
